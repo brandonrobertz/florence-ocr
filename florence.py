@@ -10,10 +10,8 @@ from PIL import Image
 from transformers import AutoProcessor, AutoModelForCausalLM 
 
 
-print("Loading models...", end=" ")
 model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
 processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
-print("Done")
 
 def run_florence(image, task_prompt, text_input=None):
     if text_input is None:

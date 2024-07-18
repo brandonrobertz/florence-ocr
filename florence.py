@@ -2,19 +2,20 @@
 #!pip install 'flash_attn==2.6.1' 'transformers==4.34.0' 'torch==2.0.1'
 # unset TRANSFORMERS_CACHE
 # export HF_HOME=./.huggingface
+import sys
+
 import requests
 
 from PIL import Image
 from transformers import AutoProcessor, AutoModelForCausalLM 
 
 
+print("Loading models...", end=" ")
 model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
 processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
+print("Done")
 
-url = "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/tasks/car.jpg?download=true"
-image = Image.open(requests.get(url, stream=True).raw)
-
-def run_example(task_prompt, text_input=None):
+def run_florence(image, task_prompt, text_input=None):
     if text_input is None:
         prompt = task_prompt
     else:
@@ -30,7 +31,8 @@ def run_example(task_prompt, text_input=None):
 
     parsed_answer = processor.post_process_generation(generated_text, task=task_prompt, image_size=(image.width, image.height))
 
-    print(parsed_answer)
+    # print(parsed_answer)
+    return parsed_answer
 
 
 # # Here are the tasks Florence can run
@@ -90,5 +92,22 @@ def run_example(task_prompt, text_input=None):
 # prompt = "<OCR_WITH_REGION>"
 # run_example(prompt)
 
-prompt = "<CAPTION>"
-run_example(prompt)
+if __name__ == "__main__":
+    # url = "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/tasks/car.jpg?download=true"
+    # image = Image.open(requests.get(url, stream=True).raw)
+
+    print(f"Loading image {sys.argv[1]}...", end=" ")
+    image = Image.open(sys.argv[1])
+    print("Done")
+
+    prompt = "<CAPTION>"
+    response = run_florence(image, prompt)
+    print("Caption:", response[prompt].strip())
+
+    prompt = "<DENSE_REGION_CAPTION>"
+    response = run_florence(image, prompt)
+    print("Regions:", "; ".join(response[prompt]["labels"]))
+
+    prompt = "<OCR_WITH_REGION>"
+    response = run_florence(image, prompt)
+    print("Text:", " ".join(response[prompt]["labels"]).strip())

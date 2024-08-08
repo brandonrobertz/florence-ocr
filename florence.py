@@ -10,8 +10,14 @@ from PIL import Image
 from transformers import AutoProcessor, AutoModelForCausalLM 
 
 
-model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
-processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
+FLORENCE_REVISION="df93020e1c7e1d05e1ec82b8c328e120583cd005"
+
+model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large",
+                                             trust_remote_code=True,
+                                             revision=FLORENCE_REVISION)
+processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large",
+                                          trust_remote_code=True,
+                                          revision=FLORENCE_REVISION)
 
 def run_florence(image, task_prompt, text_input=None):
     if text_input is None:

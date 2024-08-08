@@ -7,6 +7,8 @@ from PIL import Image, UnidentifiedImageError
 from florence import run_florence
 
 
+ROOT_DIRECTORY = "/home/brandon/src/openmeasures-research-tools"
+
 INPUT_JSON=sys.argv[1]
 
 
@@ -28,7 +30,27 @@ for record in records_getter:
         print(json.dumps(record))
         continue
 
-    joined_image_path = os.path.join("/home/brandon/src/openmeasures-research-tools", image_path)
+    # see if we already did this within this JSON
+    if "media_information" in record:
+        print(json.dumps(record))
+        continue
+
+    mediamimetype = record.get("mediamimetype")
+    if not mediamimetype or not mediamimetype.startswith("image"):
+        print(json.dumps(record))
+        continue
+
+    joined_image_path = os.path.join(ROOT_DIRECTORY, image_path)
+
+    real_image_path = os.path.realpath(joined_image_path)
+    media_path, media_filename = os.path.split(real_image_path)
+    media_basename, _ = os.path.splitext(media_filename)
+    processed_media_path = os.path.join(media_path, f"{media_basename}-florence.json")
+    if os.path.exists(processed_media_path):
+        with open(processed_media_path, "r") as f:
+            record["media_information"] = json.load(f)
+        print(json.dumps(record))
+        continue
 
     try:
         image = Image.open(joined_image_path)
@@ -50,6 +72,11 @@ for record in records_getter:
 
     prompt = "<OCR_WITH_REGION>"
     response = run_florence(image, prompt)
-    record["media_information"]["text"] = " ".join(response[prompt]["labels"]).strip()
+    record["media_information"]["text"] = " ".join(
+        response[prompt]["labels"]
+    ).strip().replace("</s>", "")
+
+    with open(processed_media_path, "w") as f:
+        json.dump(record["media_information"], f)
 
     print(json.dumps(record))

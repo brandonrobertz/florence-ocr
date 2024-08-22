@@ -6,25 +6,34 @@ import sys
 
 import requests
 
+import torch
 from PIL import Image
 from transformers import AutoProcessor, AutoModelForCausalLM 
 
 
 FLORENCE_REVISION="df93020e1c7e1d05e1ec82b8c328e120583cd005"
 
-model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large",
-                                             trust_remote_code=True,
-                                             revision=FLORENCE_REVISION)
-processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large",
-                                          trust_remote_code=True,
-                                          revision=FLORENCE_REVISION)
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+model = AutoModelForCausalLM.from_pretrained(
+    "microsoft/Florence-2-large",
+    trust_remote_code=True,
+    torch_dtype=torch_dtype,
+    revision=FLORENCE_REVISION
+).to(device)
+processor = AutoProcessor.from_pretrained(
+    "microsoft/Florence-2-large",
+    trust_remote_code=True,
+    revision=FLORENCE_REVISION
+)
+
 
 def run_florence(image, task_prompt, text_input=None):
     if text_input is None:
         prompt = task_prompt
     else:
         prompt = task_prompt + text_input
-    inputs = processor(text=prompt, images=image, return_tensors="pt")
+    inputs = processor(text=prompt, images=image, return_tensors="pt").to(device, torch_dtype)
     generated_ids = model.generate(
       input_ids=inputs["input_ids"],
       pixel_values=inputs["pixel_values"],

@@ -12,18 +12,25 @@ ROOT_DIRECTORY = "/home/brandon/src/openmeasures-research-tools"
 INPUT_JSON=sys.argv[1]
 
 
-records_getter = None
-if INPUT_JSON == "--":
-    records_getter = (json.loads(line) for line in sys.stdin.readlines())
-elif INPUT_JSON.endswith(".jsonl"):
-    with open(INPUT_JSON, "r") as f:
-        records_getter = (json.loads(line) for line in f.readlines())
-else:
-    with open(INPUT_JSON, "r") as f:
-        records_getter = json.load(f)
+def log(msg):
+    sys.stderr.write(f"{msg}\n")
 
 
-for record in records_getter:
+def record_getter():
+    if INPUT_JSON == "--":
+        for line in sys.stdin.readlines():
+            yield json.loads(line)
+    elif INPUT_JSON.endswith(".jsonl"):
+        with open(INPUT_JSON, "r") as f:
+            for line in f.readlines():
+                yield json.loads(line)
+    else:
+        with open(INPUT_JSON, "r") as f:
+            for record in json.load(f):
+                yield record
+
+
+for record in record_getter():
     try:
         image_path = record["downloaded_media_path"]
     except KeyError:
@@ -39,6 +46,9 @@ for record in records_getter:
     if not mediamimetype or not mediamimetype.startswith("image"):
         print(json.dumps(record))
         continue
+
+    print(f"Running florence on media mime type {mediamimetype}...",
+          file=sys.stderr)
 
     joined_image_path = os.path.join(ROOT_DIRECTORY, image_path)
 
